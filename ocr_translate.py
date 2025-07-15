@@ -1,41 +1,62 @@
-from PIL import ImageGrab
 import pytesseract
-import time
 import requests
+import time
+from PIL import ImageGrab
 
-#Variables base
+# Coordenadas de la región de subtítulos: (left, top, right, bottom)
 SUBTITLE_REGION = (530, 842, 1160, 1168)
 
+# Configura Ollama
 OLLAMA_URL = "http://localhost:11434/api/generate"
 OLLAMA_MODEL = "llama3.1:8b"
 
-
-last_text = ""
-
 def traducir(texto):
-   prompt = f"Por favor traduce este texto del inglés al español, solo dame la traducción: {texto}"
-   response = requests.post(
-      OLLAMA_URL,
-      json={
-         "model": OLLAMA_MODEL,
-         "prompt": prompt
-      }
-   )
-   data = response.json()
-   return data["response"]
-   
+    # Limita longitud para evitar romper runner
+    texto = texto.strip().replace('\n', ' ')
+    if len(texto) > 500:
+        texto = texto[:500]
 
-print("Iniciando OCR + traducción.... Ctrl+C para salir.\n")
+    # Prompt claro y directo
+    prompt = f"Traduce del inglés al español el siguiente texto. Solo devuelve la traducción, sin explicaciones:\n\n{texto}"
+    print("\n🔹 Prompt enviado a Ollama:\n", prompt)
 
-while True:
-    img = ImageGrab.grab(bbox=SUBTITLE_REGION)
-    text = pytesseract.image_to_string(img).strip()
+    try:
+        response = requests.post(
+            OLLAMA_URL,
+            json={
+                "model": OLLAMA_MODEL,
+                "prompt": prompt
+            }
+        )
+        data = response.json()
 
-    if text and text != last_text:
-        print(f"\n📝 Texto detectado: {text}")
-        trad = traducir(text)
-        print(f"🌍 Traducción: {trad}")
-        last_text = text
+        if "response" in data and data["response"].strip():
+            return data["response"].strip()
+        else:
+            print("⚠️ Respuesta inesperada o vacía de Ollama:", data)
+            return "[Traducción no disponible]"
 
-    time.sleep(1)
+    except Exception as e:
+        print("❌ Error al llamar a Ollama:", e)
+        return "[Error en traducción]"
 
+def main():
+    print("Iniciando OCR + traducción en terminal... Ctrl+C para salir.\n")
+    ultimo_texto = ""
+
+    while True:
+        # Captura imagen de la zona definida
+        img = ImageGrab.grab(bbox=SUBTITLE_REGION)
+        text = pytesseract.image_to_string(img, lang='eng').strip()
+
+        # Solo traduce si el texto cambió y no está vacío
+        if text and text != ultimo_texto:
+            print("\n📝 Texto detectado:\n", text)
+            trad = traducir(text)
+            print("🌍 Traducción:", trad)
+            ultimo_texto = text
+
+        time.sleep(1)  # Evita sobrecargar CPU y Ollama
+
+if __name__ == "__main__":
+    main()
