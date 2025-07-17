@@ -25,10 +25,17 @@ def traducir(texto):
             OLLAMA_URL,
             json={
                 "model": OLLAMA_MODEL,
-                "prompt": prompt
+                "prompt": prompt,
+                "stream": False
             }
         )
+        
+        if response.status_code != 200:
+            print(f"❌ Error HTTP {response.status_code}: {response.text}")
+            return "[Error en traducción]"
+        
         data = response.json()
+        print("🔍 Respuesta de Ollama:", data)
 
         if "response" in data and data["response"].strip():
             return data["response"].strip()
