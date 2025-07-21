@@ -3,6 +3,7 @@ import requests
 import time
 import json
 import os
+import gc
 from PIL import ImageGrab
 
 # Carga configuración desde archivo externo
@@ -69,17 +70,28 @@ def traducir(texto):
 def main():
     print("Iniciando OCR + traducción en terminal... Ctrl+C para salir.\n")
     ultimo_texto = ""
+    iteration_count = 0
 
     while True:
         # Captura imagen de la zona definida
         img = ImageGrab.grab(bbox=SUBTITLE_REGION)
-        text = pytesseract.image_to_string(img, lang='eng').strip()
+        try:
+            text = pytesseract.image_to_string(img, lang='eng').strip()
+        finally:
+            # Limpia la imagen de memoria inmediatamente
+            del img
 
         # Solo traduce si el texto cambió y no está vacío
         if text and text != ultimo_texto:
             trad = traducir(text)
             print("🌍 Traducción:", trad)
             ultimo_texto = text
+
+        # Fuerza garbage collection cada 30 iteraciones (30 segundos)
+        iteration_count += 1
+        if iteration_count % 30 == 0:
+            gc.collect()
+            iteration_count = 0
 
         time.sleep(1)  # Evita sobrecargar CPU y Ollama
 
