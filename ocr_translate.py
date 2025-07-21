@@ -1,24 +1,44 @@
 import pytesseract
 import requests
 import time
+import json
+import os
 from PIL import ImageGrab
 
-# Coordenadas de la región de subtítulos: (left, top, right, bottom)
-SUBTITLE_REGION = (530, 842, 1160, 1168)
+# Carga configuración desde archivo externo
+def load_config():
+    config_path = os.path.join(os.path.dirname(__file__), 'config.json')
+    if os.path.exists(config_path):
+        with open(config_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    else:
+        # Configuración por defecto si no existe el archivo
+        return {
+            "translation_prompt": "Traduce este texto del inglés al español. Mantén nombres propios y términos técnicos sin cambiar:",
+            "subtitle_region": [530, 842, 1160, 1168],
+            "ollama_url": "http://localhost:11434/api/generate",
+            "ollama_model": "llama3.1:8b",
+            "max_text_length": 500
+        }
 
-# Configura Ollama
-OLLAMA_URL = "http://localhost:11434/api/generate"
-OLLAMA_MODEL = "llama3.1:8b"
+# Carga configuración
+config = load_config()
+SUBTITLE_REGION = tuple(config["subtitle_region"])
+OLLAMA_URL = config["ollama_url"]
+OLLAMA_MODEL = config["ollama_model"]
 
 def traducir(texto):
     # Limita longitud para evitar romper runner
     texto = texto.strip().replace('\n', ' ')
-    if len(texto) > 500:
-        texto = texto[:500]
+    max_length = config.get("max_text_length", 500)
+    if len(texto) > max_length:
+        texto = texto[:max_length]
 
-    # Prompt claro y directo
-    prompt = f"Traduce del inglés al español el siguiente texto. Solo devuelve la traducción, sin explicaciones:\n\n{texto}"
-    print("\n🔹 Prompt enviado a Ollama:\n", prompt)
+    # Usa el prompt de configuración
+    translation_prompt = config.get("translation_prompt", "Traduce este texto del inglés al español:")
+    prompt = f"""{translation_prompt}
+
+{texto}"""
 
     try:
         response = requests.post(
@@ -35,7 +55,6 @@ def traducir(texto):
             return "[Error en traducción]"
         
         data = response.json()
-        print("🔍 Respuesta de Ollama:", data)
 
         if "response" in data and data["response"].strip():
             return data["response"].strip()
@@ -58,7 +77,6 @@ def main():
 
         # Solo traduce si el texto cambió y no está vacío
         if text and text != ultimo_texto:
-            print("\n📝 Texto detectado:\n", text)
             trad = traducir(text)
             print("🌍 Traducción:", trad)
             ultimo_texto = text

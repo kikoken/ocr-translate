@@ -32,13 +32,38 @@ pip3 install -r requirements.txt
 brew install tesseract
 ```
 
-🛠 Configuración rápida
-Edita el archivo ocr_translate.py y ajusta esta línea con las coordenadas exactas donde salen tus subtítulos en pantalla:
+## 🛠 Configuración
 
-```python
-SUBTITLE_REGION = (530, 842, 1160, 1168)
+### Archivo de configuración
+
+El script usa un archivo `config.json` para personalizar su comportamiento. Este archivo **no se incluye en el repositorio** para mantener tu configuración privada y ajustable.
+
+Crea un archivo `config.json` en el directorio raíz del proyecto con el siguiente contenido:
+
+```json
+{
+  "translation_prompt": "Traduce este texto del inglés al español. Mantén nombres propios y términos técnicos sin cambiar:",
+  "subtitle_region": [530, 842, 1160, 1168],
+  "ollama_url": "http://localhost:11434/api/generate",
+  "ollama_model": "llama3.1:8b",
+  "max_text_length": 500
+}
 ```
-(Las coordenadas son: izquierda, arriba, derecha, abajo)
+
+### Parámetros de configuración
+
+- `translation_prompt`: El contexto/instrucciones que se envían al modelo para la traducción
+- `subtitle_region`: Coordenadas de la zona de subtítulos [izquierda, arriba, derecha, abajo]
+- `ollama_url`: URL de la API local de Ollama
+- `ollama_model`: Modelo de Ollama a usar para traducción
+- `max_text_length`: Longitud máxima del texto a traducir
+
+### Configuración rápida de coordenadas
+
+Para encontrar las coordenadas exactas de tu zona de subtítulos:
+1. Abre una reunión con subtítulos
+2. Usa herramientas como Digital Color Meter (macOS) para encontrar las coordenadas
+3. Ajusta los valores en `config.json`
 
 ## 🚀 Uso
 
